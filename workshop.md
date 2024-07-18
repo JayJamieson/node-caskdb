@@ -12,4 +12,4 @@ A typical workshop session is 4 hours and can span over two days. It is a hands-
 | Break                                 | 10 Min   |
 | Some Level 1 challenges               | 30 Min   |
 | [Optional] Covering the Bitcask Paper | 30 Min   |
- | [Optional] Discussion of Level 2, 3   | 30 Min   |
+| [Optional] Discussion of Level 2, 3   | 30 Min   |

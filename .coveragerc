@@ -1,4 +1,4 @@
 [run]
 branch = True
 omit =
-    example.py
+    example.ts
