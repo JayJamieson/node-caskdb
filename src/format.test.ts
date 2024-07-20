@@ -1,104 +1,116 @@
-import random
-import struct
-import time
-import typing
-import unittest
-import uuid
+import { expect, suite, test } from "vitest";
+import {
+  decodeHeader,
+  decodeKV,
+  encodeHeader,
+  encodeKV,
+  HEADER_SIZE,
+  KeyEntry,
+} from "./format.js";
+import { randomInt, randomUUID } from "node:crypto";
 
-from caskdb.format import (
-    encode_header,
-    decode_header,
-    encode_kv,
-    decode_kv,
-    HEADER_SIZE,
-)
-from caskdb.format import KeyEntry
+function getRandomHeader(): [number, number, number] {
+  const maxSize = 2 ** 32 - 1;
+  return [randomInt(maxSize), randomInt(maxSize), randomInt(maxSize)];
+}
 
+function getRandomKV(): [number, string, string, number] {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const key = randomUUID();
+  const value = randomUUID();
 
-def get_random_header() -> tuple[int, int, int]:
-    # we use 4 bytes to store the int, so max value cannot be greater than
-    # the following
-    max_size: int = (2**32) - 1
-    random_int: typing.Callable[[], int] = lambda: random.randint(0, max_size)
-    return random_int(), random_int(), random_int()
+  return [
+    timestamp,
+    key,
+    value,
+    HEADER_SIZE + Buffer.byteLength(key) + Buffer.byteLength(value),
+  ];
+}
 
+class Header {
+  constructor(
+    public timestamp: number,
+    public keySize: number,
+    public valueSize: number
+  ) {}
+}
 
-def get_random_kv() -> tuple[int, str, str, int]:
-    return (
-        int(time.time()),
-        str(uuid.uuid4()),
-        str(uuid.uuid4()),
-        HEADER_SIZE + (2 * len(str(uuid.uuid4()))),
-    )
+class KeyValue {
+  constructor(
+    public timestamp: number,
+    public key: string,
+    public value: string,
+    public size: number
+  ) {}
+}
 
+suite("header op", () => {
+  const testHeader = (header: Header) => {
+    const buffer = Buffer.alloc(HEADER_SIZE);
+    encodeHeader(buffer, header.timestamp, header.keySize, header.valueSize);
 
-class Header(typing.NamedTuple):
-    timestamp: int
-    key_size: int
-    val_size: int
+    const [t, k, v] = decodeHeader(buffer);
 
+    expect(t).toBe(header.timestamp);
+    expect(k).toBe(header.keySize);
+    expect(v).toBe(header.valueSize);
+  };
 
-class KeyValue(typing.NamedTuple):
-    timestamp: int
-    key: str
-    val: str
-    sz: int
+  test("header serialisation", () => {
+    const headers = [
+      new Header(10, 10, 10),
+      new Header(0, 0, 0),
+      new Header(100, 100, 100),
+    ];
 
+    for (const header of headers) {
+      testHeader(header);
+    }
+  });
 
-class TestHeaderOp(unittest.TestCase):
-    def header_test(self, tt: Header) -> None:
-        data = encode_header(tt.timestamp, tt.key_size, tt.val_size)
-        t, k, v = decode_header(data)
-        self.assertEqual(tt.timestamp, t)
-        self.assertEqual(tt.key_size, k)
-        self.assertEqual(tt.val_size, v)
+  test("random", () => {
+    for (let index = 0; index <= 100; index++) {
+      const header = new Header(...getRandomHeader());
+      testHeader(header);
+    }
+  });
 
-    def test_header_serialisation(self) -> None:
-        tests: typing.List[Header] = [
-            Header(10, 10, 10),
-            Header(0, 0, 0),
-            Header(10000, 10000, 10000),
-        ]
-        for tt in tests:
-            self.header_test(tt)
+  test("bad", () => {
+    const buffer = Buffer.alloc(HEADER_SIZE);
+    expect(() => {
+      encodeHeader(buffer, Math.pow(2, 32), 5, 3);
+    }).toThrow();
+  });
+});
 
-    def test_random(self) -> None:
-        for _ in range(100):
-            tt = Header(*get_random_header())
-            self.header_test(tt)
+suite("encode kv", () => {
+  const testKV = (keyvalue: KeyValue) => {
+    const data = encodeKV(keyvalue.timestamp, keyvalue.value, keyvalue.value);
 
-    def test_bad(self) -> None:
-        # trying to encode an int with size more than 4 bytes should raise an error
-        self.assertRaises(struct.error, encode_header, 2**32, 5, 5)
+    const [t, k, v] = decodeKV(data);
 
+    expect(t).toBe(keyvalue.timestamp);
+    expect(k).toBe(keyvalue.value);
+    expect(v).toBe(keyvalue.value);
+    expect(data.length).toBe(keyvalue.size);
+  };
 
-class TestEncodeKV(unittest.TestCase):
-    def kv_test(self, tt: KeyValue) -> None:
-        sz, data = encode_kv(tt.timestamp, tt.key, tt.val)
-        t, k, v = decode_kv(data)
-        self.assertEqual(tt.timestamp, t)
-        self.assertEqual(tt.key, k)
-        self.assertEqual(tt.val, v)
-        self.assertEqual(tt.sz, sz)
+  test("kv serialisation", () => {});
 
-    def test_KV_serialisation(self) -> None:
-        tests: typing.List[KeyValue] = [
-            KeyValue(10, "hello", "world", HEADER_SIZE + 10),
-            KeyValue(0, "", "", HEADER_SIZE),
-        ]
-        for tt in tests:
-            self.kv_test(tt)
+  test("random", () => {
+    for (let index = 0; index <= 100; index++) {
+      const header = new KeyValue(...getRandomKV());
+      testKV(header);
+    }
+  });
+});
 
-    def test_random(self) -> None:
-        for _ in range(100):
-            tt = KeyValue(*get_random_kv())
-            self.kv_test(tt)
-
-
-class TestKeyEntry(unittest.TestCase):
-    # dumb test to increase the coverage
-    def test_init(self) -> None:
-        ke = KeyEntry(10, 10, 10)
-        self.assertEqual(ke.timestamp, 10)
-        self.assertEqual(ke.position, 10)
-        self.assertEqual(ke.total_size, 10)
+suite("key entry", () => {
+  // dumb test to increase the coverage
+  test("init", () => {
+    const ke = new KeyEntry(10, 10, 10);
+    expect(ke.timestamp).toBe(10);
+    expect(ke.position).toBe(10);
+    expect(ke.size).toBe(10);
+  });
+});

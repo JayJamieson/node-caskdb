@@ -1,0 +1,18 @@
+{
+  "name": "caskdb",
+  "version": "1.0.0",
+  "description": "CaskDB is a disk-based, embedded, persistent, key-value store based on the [Riak's bitcask paper](https://riak.com/assets/bitcask-intro.pdf), written in Node.js.",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.3"
+  }
+}

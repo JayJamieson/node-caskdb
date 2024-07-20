@@ -1,7 +1,7 @@
 # CaskDB - Disk based Log Structured Hash Table Store (Node.js)
 
 > [!NOTE]
-> This is a fork from [py-caskdb](https://github.com/avinassh/py-caskdb) rewritten in Node.js for those not familar with python
+> This is a fork from [py-caskdb](https://github.com/avinassh/py-caskdb) ported to Node.js for those not familar with python
 
 ![GitHub License](https://img.shields.io/github/license/JayJamieson/node-caskdb)
 [![twitter@iavins](https://img.shields.io/twitter/follow/iavins?style=social)](https://twitter.com/iavins)
@@ -16,6 +16,7 @@ This project aims to help anyone, even a beginner in databases, build a persiste
 If you are interested in writing the database yourself, head to the workshop section.
 
 ## Features
+
 - Low latency for reads and writes
 - High throughput
 - Easy to back up / restore
@@ -23,6 +24,7 @@ If you are interested in writing the database yourself, head to the workshop sec
 - Store data much larger than the RAM
 
 ## Limitations
+
 Most of the following limitations are of CaskDB. However, there are some due to design constraints by the Bitcask paper.
 
 - Single file stores all data, and deleted keys still take up the space
