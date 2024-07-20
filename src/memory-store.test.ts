@@ -1,18 +1,25 @@
-import unittest
+import {expect, suite, test} from "vitest";
+import { MemoryStorage } from "./memory-store.js";
 
-from caskdb import MemoryStorage
+suite("in memory caskdb",  () => {
+  test("get()", async () => {
+    const store = new MemoryStorage();
+    await store.set("name", "jojo");
+    const result = await store.get("name");
 
+    expect(result).toBe("jojo");
+  })
 
-class TestInMemoryCaskDB(unittest.TestCase):
-    def test_get(self) -> None:
-        store = MemoryStorage()
-        store.set("name", "jojo")
-        self.assertEqual(store.get("name"), "jojo")
+  test("invalid key", async () => {
+    const store = new MemoryStorage();
 
-    def test_invalid_key(self) -> None:
-        store = MemoryStorage()
-        self.assertEqual(store.get("some key"), "")
+    const result = await store.get("name");
 
-    def test_close(self) -> None:
-        store = MemoryStorage()
-        store.close()
+    expect(result).toBe(undefined);
+  })
+
+  test("close()", async () => {
+    const store = new MemoryStorage();
+    await store.close();
+  })
+})
