@@ -1,7 +1,7 @@
 # CaskDB - Disk based Log Structured Hash Table Store (Node.js)
 
 > [!NOTE]
-> This is a fork from [py-caskdb](https://github.com/avinassh/py-caskdb) ported to Node.js for those not familar with python
+> This is a fork from [py-caskdb](https://github.com/avinassh/py-caskdb) ported to Node.js for those not familar with python.
 
 ![GitHub License](https://img.shields.io/github/license/JayJamieson/node-caskdb)
 [![twitter@iavins](https://img.shields.io/twitter/follow/iavins?style=social)](https://twitter.com/iavins)
