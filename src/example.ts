@@ -1,46 +1,53 @@
-from caskdb.memory_store import MemoryStorage
-from caskdb.disk_store import DiskStorage
+import { MemoryStorage } from "./memory-store.js";
+
+// from caskdb.disk_store import DiskStorage
+
+const print = console.log;
+
+async function memoryDB() {
+  const store = new MemoryStorage();
+    print(await store.get("name"))
+    await store.set("name", "jojo")
+    print(await store.get("name"), "jojo")
+}
+
+// def store_db() -> None:
+//     store = DiskStorage("data.db")
+//     # on the first run, this will print empty string, but on the next run
+//     # it should print the value from the disk
+//     print(store.get("name"))
+//     store.set("name", "haha")
+//     print(store.get("name"))
+//     store.close()
 
 
-def memory_db() -> None:
-    store = MemoryStorage()
-    print(store.get("name"))
-    store.set("name", "jojo")
-    print(store.get("name"), "jojo")
+// def store_books() -> None:
+//     store = DiskStorage("books.db")
+//     books = {
+//         "crime and punishment": "dostoevsky",
+//         "anna karenina": "tolstoy",
+//         "war and peace": "tolstoy",
+//         "hamlet": "shakespeare",
+//         "othello": "shakespeare",
+//         "brave new world": "huxley",
+//         "dune": "frank herbert",
+//     }
+//     for k, v in books.items():
+//         store.set(k, v)
+//         print(f"set k={k}, v={v}")
+//         print(f"get k={k}, v={store.get(k)}")
 
+//     for k in books:
+//         print(f"get k={k}, v={store.get(k)}")
+//     store.close()
 
-def store_db() -> None:
-    store = DiskStorage("data.db")
-    # on the first run, this will print empty string, but on the next run
-    # it should print the value from the disk
-    print(store.get("name"))
-    store.set("name", "haha")
-    print(store.get("name"))
-    store.close()
+// if __name__ == "__main__":
+//     # memory_db()
+//     store_db()
+//     store_books()
 
+async function main() {
+  await memoryDB();
+}
 
-def store_books() -> None:
-    store = DiskStorage("books.db")
-    books = {
-        "crime and punishment": "dostoevsky",
-        "anna karenina": "tolstoy",
-        "war and peace": "tolstoy",
-        "hamlet": "shakespeare",
-        "othello": "shakespeare",
-        "brave new world": "huxley",
-        "dune": "frank herbert",
-    }
-    for k, v in books.items():
-        store.set(k, v)
-        print(f"set k={k}, v={v}")
-        print(f"get k={k}, v={store.get(k)}")
-
-    for k in books:
-        print(f"get k={k}, v={store.get(k)}")
-    store.close()
-
-
-if __name__ == "__main__":
-    # memory_db()
-    store_db()
-    store_books()
+await main();
