@@ -8,29 +8,36 @@ Feel free opt out of using Promises/async/await in your own implementation. Be s
 change.
 */
 
-export class MemoryStorage {
-  private keyDir: Map<string, string>;
+export type MemoryStore = {
+  set: (key: string, value: string) => Promise<void>
+  get: (key: string) => Promise<string>
+  close: () => Promise<void>
+};
 
-  constructor() {
-    this.keyDir = new Map<string, string>();
-  }
+export function MemoryStorage(): MemoryStore {
+  const keyDir = new Map<string, string>();
 
-  set(key: string, value: string): Promise<void> {
+
+  function set(key: string, value: string): Promise<void> {
     return new Promise((resolve) => {
-      this.keyDir.set(key, value);
+      keyDir.set(key, value);
       resolve();
     });
   }
 
-  get(key: string): Promise<string | undefined> {
+  function get(key: string): Promise<string | undefined> {
     return new Promise((resolve) => {
-      resolve(this.keyDir.get(key));
+      resolve(keyDir.get(key));
     });
   }
 
-  close(): Promise<void> {
+  function close(): Promise<void> {
     return new Promise((resolve) => {
-      resolve(this.keyDir.clear());
+      resolve(keyDir.clear());
     });
+  }
+
+  return {
+    get, set, close
   }
 }

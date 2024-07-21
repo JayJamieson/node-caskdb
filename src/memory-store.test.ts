@@ -3,7 +3,7 @@ import { MemoryStorage } from "./memory-store.js";
 
 suite("in memory caskdb",  () => {
   test("get()", async () => {
-    const store = new MemoryStorage();
+    const store = MemoryStorage();
     await store.set("name", "jojo");
     const result = await store.get("name");
 
@@ -11,7 +11,7 @@ suite("in memory caskdb",  () => {
   })
 
   test("invalid key", async () => {
-    const store = new MemoryStorage();
+    const store = MemoryStorage();
 
     const result = await store.get("name");
 
@@ -19,7 +19,7 @@ suite("in memory caskdb",  () => {
   })
 
   test("close()", async () => {
-    const store = new MemoryStorage();
+    const store = MemoryStorage();
     await store.close();
   })
 })
