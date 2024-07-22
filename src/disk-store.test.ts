@@ -1,43 +1,65 @@
-// import os
-// import tempfile
-// import typing
-// import unittest
+import { suite, test } from "vitest";
+import { DiskStorage } from "./disk-store.js";
 
-// from caskdb import DiskStorage
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const tmpFilePath = async (): Promise<[string, () => Promise<void>]> => {
+  const dir = await mkdtemp(join(tmpdir(), "foo-"));
+  const file = join(dir, "tmp.db");
+  console.log(file);
+  return [
+    file,
+    async () => {
+      console.log("deleting", dir);
+      const res = await rm(dir, {
+        force: true,
+        recursive: true,
+      });
+      console.log(res);
+    },
+  ];
+};
+
+suite("disk caskdb", () => {
+  test("get()", async () => {
+    const [path, cleanUp] = await tmpFilePath();
+    const store = await DiskStorage(path);
+
+    await store.set("foo", "bar");
+    const result = await store.get("foo");
 
 
-// class TempStorageFile:
-//     """
-//     TempStorageFile provides a wrapper over the temporary files which are used in
-//     testing.
+    await cleanUp();
+  });
 
-//     Python has two APIs to create temporary files, tempfile.TemporaryFile and
-//     tempfile.mkstemp. Files created by tempfile.TemporaryFile gets deleted as soon as
-//     they are closed. Since we need to do tests for persistence, we might open and
-//     close a file multiple times. Files created using tempfile.mkstemp don't have this
-//     limitation, but they have to deleted manually. They don't get deleted when the file
-//     descriptor is out scope or our program has exited.
+  test("invalid key", async () => {
+    const [path, cleanUp] = await tmpFilePath();
+    const store = await DiskStorage(path);
 
-//     Args:
-//         path (str): path to the file where our data needs to be stored. If the path
-//             parameter is empty, then a temporary will be created using tempfile API
-//     """
+    await cleanUp();
+  });
+  test("persistence", async () => {
+    const [path, cleanUp] = await tmpFilePath();
+    const store = await DiskStorage(path);
 
-//     def __init__(self, path: typing.Optional[str] = None):
-//         if path:
-//             self.path = path
-//             return
+    await cleanUp();
+  });
+  test("delete", async () => {
+    const [path, cleanUp] = await tmpFilePath();
+    const store = await DiskStorage(path);
 
-//         fd, self.path = tempfile.mkstemp()
-//         os.close(fd)
+    await cleanUp();
+  });
 
-//     def clean_up(self) -> None:
-//         # NOTE: you might be tempted to use the destructor method `__del__`, however
-//         # destructor method gets called whenever the object goes out of scope, and it
-//         # will delete our database file. Having a separate method would give us better
-//         # control.
-//         os.remove(self.path)
+  test("existing file", async () => {
+    const [path, cleanUp] = await tmpFilePath();
+    const store = await DiskStorage(path);
 
+    await cleanUp();
+  });
+});
 
 // class TestDiskCaskDB(unittest.TestCase):
 //     def setUp(self) -> None:
@@ -55,12 +77,6 @@
 //     def test_invalid_key(self) -> None:
 //         store = DiskStorage(file_name=self.file.path)
 //         self.assertEqual(store.get("some key"), "")
-//         store.close()
-
-//     def test_dict_api(self) -> None:
-//         store = DiskStorage(file_name=self.file.path)
-//         store["name"] = "jojo"
-//         self.assertEqual(store["name"], "jojo")
 //         store.close()
 
 //     def test_persistence(self) -> None:
@@ -109,7 +125,6 @@
 //             self.assertEqual(store.get(k), "")
 //         self.assertEqual(store.get("end"), "yes")
 //         store.close()
-
 
 // class TestDiskCaskDBExistingFile(unittest.TestCase):
 //     def test_get_new_file(self) -> None:
