@@ -10,7 +10,7 @@ change.
 
 export type MemoryStore = {
   set: (key: string, value: string) => Promise<void>
-  get: (key: string) => Promise<string>
+  get: (key: string) => Promise<string|undefined>
   close: () => Promise<void>
 };
 

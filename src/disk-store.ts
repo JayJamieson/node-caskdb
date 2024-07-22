@@ -43,8 +43,40 @@ However, there are drawbacks too:
 Read the paper for more details: https://riak.com/assets/bitcask-intro.pdf
 */
 
-async function DiskStorage(path: string) {
+export type DiskStore = {
+  set: (key: string, value: string) => Promise<void>
+  get: (key: string) => Promise<string|undefined>
+  close: () => Promise<void>
+};
 
+export async function DiskStorage(path: string): Promise<DiskStore> {
+  const keyDir = new Map<string, string>();
+
+
+  function set(key: string, value: string): Promise<void> {
+    return new Promise((resolve) => {
+      keyDir.set(key, value);
+      resolve();
+    });
+  }
+
+  function get(key: string): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      resolve(keyDir.get(key));
+    });
+  }
+
+  function close(): Promise<void> {
+    return new Promise((resolve) => {
+      resolve(keyDir.clear());
+    });
+  }
+
+  return {
+    get,
+    set,
+    close
+  }
 }
 
 // class DiskStorage:

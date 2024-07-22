@@ -5,7 +5,8 @@ import { MemoryStorage } from "./memory-store.js";
 const print = console.log;
 
 async function memoryDB() {
-  const store = new MemoryStorage();
+  const store = MemoryStorage();
+
     print(await store.get("name"))
     await store.set("name", "jojo")
     print(await store.get("name"), "jojo")
