@@ -168,3 +168,7 @@ export function decodeKV(
 
   return [timestamp, key, value];
 }
+
+export function timestamp(): number {
+  return Math.round(Date.now() / 1000);
+}

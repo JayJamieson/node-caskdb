@@ -2,6 +2,7 @@
 
 > [!NOTE]
 > This is a fork from [py-caskdb](https://github.com/avinassh/py-caskdb) ported to Node.js for those not familar with python.
+> Please go and checkout the py-caskdb and give it a start as well.
 
 ![GitHub License](https://img.shields.io/github/license/JayJamieson/node-caskdb)
 [![twitter@iavins](https://img.shields.io/twitter/follow/iavins?style=social)](https://twitter.com/iavins)
@@ -104,6 +105,10 @@ I often get questions about what is next after the basic implementation. Here ar
 - Add SQL query engine layer
 - Store JSON in values and explore making CaskDB as a document database like Mongo
 - Make CaskDB distributed by exploring algorithms like raft, paxos, or consistent hashing
+
+## Credits
+
+- [avinassh](https://github.com/avinassh) for creating the original Python version
 
 ## Contributing
 

@@ -16,10 +16,10 @@ Thank you!
 ## Branches
 
 - `start-here` contains all the base challenges and test cases
-- `master` implements the base challenges
+- `main` implements the base challenges
 - `final` implements challenges from different levels
 
-If your PR is a bug/typo fix, open a PR with `master` as the base. I will backport the changes to `start-here` and `final` once merged.
+If your PR is a bug/typo fix, open a PR with `main` as the base. I will backport the changes to `start-here` and `final` once merged.
 
 If you are implementing something new, open a PR with `final` as the base.
 

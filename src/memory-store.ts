@@ -9,14 +9,13 @@ change.
 */
 
 export type MemoryStore = {
-  set: (key: string, value: string) => Promise<void>
-  get: (key: string) => Promise<string|undefined>
-  close: () => Promise<void>
+  set: (key: string, value: string) => Promise<void>;
+  get: (key: string) => Promise<string | undefined>;
+  close: () => Promise<void>;
 };
 
 export function MemoryStorage(): MemoryStore {
   const keyDir = new Map<string, string>();
-
 
   function set(key: string, value: string): Promise<void> {
     return new Promise((resolve) => {
@@ -38,6 +37,8 @@ export function MemoryStorage(): MemoryStore {
   }
 
   return {
-    get, set, close
-  }
+    get,
+    set,
+    close,
+  };
 }
