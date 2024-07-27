@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > This is a fork from [py-caskdb](https://github.com/avinassh/py-caskdb) ported to Node.js for those not familar with python.
-> Please go and checkout the py-caskdb and give it a start as well.
+> Please go and checkout the py-caskdb and give it a star as well.
 
 ![GitHub License](https://img.shields.io/github/license/JayJamieson/node-caskdb)
 [![twitter@iavins](https://img.shields.io/twitter/follow/iavins?style=social)](https://twitter.com/iavins)
