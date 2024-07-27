@@ -99,9 +99,6 @@ export function encodeHeader(
   kSize: number,
   vSize: number
 ) {
-  buff.writeUInt32LE(timestamp, 0);
-  buff.writeUInt32LE(kSize, 4);
-  buff.writeUInt32LE(vSize, 8);
 }
 
 /**
@@ -115,11 +112,6 @@ export function decodeHeader(
   buffer: Buffer,
   offset: number = 0
 ): [number, number, number] {
-  return [
-    buffer.readUInt32LE(offset),
-    buffer.readUInt32LE(offset + 4),
-    buffer.readUInt32LE(offset + 8),
-  ];
 }
 
 /**
@@ -135,15 +127,7 @@ export function encodeKV(
   key: string,
   value: string
 ): Buffer {
-  const kSize = Buffer.byteLength(key);
-  const vSize = Buffer.byteLength(value);
 
-  const buff = Buffer.alloc(HEADER_SIZE + kSize + vSize);
-  encodeHeader(buff, timestamp, kSize, vSize);
-
-  buff.write(`${key}${value}`, HEADER_SIZE);
-
-  return buff;
 }
 
 /**
@@ -157,16 +141,6 @@ export function decodeKV(
   buff: Buffer,
   offset: number = 0
 ): [number, string, string] {
-  const [timestamp, kSize, vSize] = decodeHeader(buff, offset);
-
-  const key = buff.toString("utf8", HEADER_SIZE, HEADER_SIZE + kSize);
-  const value = buff.toString(
-    "utf8",
-    HEADER_SIZE + kSize,
-    HEADER_SIZE + kSize + vSize
-  );
-
-  return [timestamp, key, value];
 }
 
 export function timestamp(): number {
