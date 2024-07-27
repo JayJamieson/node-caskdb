@@ -50,9 +50,9 @@ function decodeHeader(data: Buffer): [number, number, number]
 
 **More Hints:**
 
-- Read this [comment](https://github.com/avinassh/py-caskdb/blob/e0819f7/format.py#L1,#L37) to understand why do we need serialiser methods
+- Read this [comment](https://github.com/JayJamieson/node-caskdb/blob/99c0a9c147ea464bf958b39a22d435d8e2212939/src/format.ts#L1,#L37) to understand why do we need serialiser methods
 - Check out the documentation of [`Buffer`](https://nodejs.org/api/buffer.html) for serialisation methods in Node.js
-- Not sure how to come up with a file format? Read the comment in the [format module](https://github.com/avinassh/py-caskdb/blob/e0819f7/format.py#L42,#L74)
+- Not sure how to come up with a file format? Read the comment in the [format module](https://github.com/JayJamieson/node-caskdb/blob/99c0a9c147ea464bf958b39a22d435d8e2212939/src/format.ts#L42,#L74)
 
 ### Key Value Serialisers
 
@@ -81,8 +81,8 @@ So, implement the `DiskStorage` class in `disk-store.ts`
 
 **Hints:**
 
-- Some meta info on the DiskStorage is [here](https://github.com/avinassh/py-caskdb/blob/e0819f7/disk_store.py#L1,L21).
-- The inner workings of the DiskStorage are [here](https://github.com/avinassh/py-caskdb/blob/e0819f7/disk_store.py#L41,L65).
+- Some meta info on the DiskStorage is [here](https://github.com/JayJamieson/node-caskdb/blob/99c0a9c147ea464bf958b39a22d435d8e2212939/src/disk-store.ts#L1,L14).
+- The inner workings of the DiskStorage are [here](https://github.com/JayJamieson/node-caskdb/blob/99c0a9c147ea464bf958b39a22d435d8e2212939/src/disk-store.ts#L16,L40).
 
 ### Start up tasks
 
