@@ -39,7 +39,7 @@ However, there are drawbacks too:
 Read the paper for more details: https://riak.com/assets/bitcask-intro.pdf
 */
 
-import { open } from "node:fs/promises";
+import { open, type FileHandle } from "node:fs/promises";
 import {
   decodeHeader,
   decodeKV,
@@ -55,7 +55,122 @@ export type DiskStore = {
   close: () => Promise<void>;
 };
 
-export async function DiskStorage(path: string): Promise<DiskStore> {
+export type DiskStoreOptions = {
+  /**
+   * Call fsync after every write to guarantee durability.
+   * Dramatically increases write latency (~50–300 µs extra per write on SSDs).
+   * Default: false
+   */
+  fsync?: boolean;
+  /**
+   * Serialise concurrent set() calls through an async queue so that
+   * _writePosition and _keyDir are always consistent under concurrent load.
+   * Disable only for single-writer workloads where you want to avoid the
+   * promise-chaining overhead.
+   * Default: true
+   */
+  writeQueue?: boolean;
+  /**
+   * Coalesce concurrent writes into a single syscall using group-commit.
+   * All set() calls that arrive while a write is in flight are concatenated
+   * into one Buffer and written with a single pwrite, dramatically reducing
+   * syscall overhead under concurrent load. Implies writeQueue=false (the
+   * GroupCommitWriter manages its own position accounting).
+   * Default: false
+   */
+  groupCommit?: boolean;
+};
+
+export class WriteQueue {
+  private queue: Promise<void> = Promise.resolve();
+
+  enqueue(fn: () => Promise<void>): Promise<void> {
+    // The chain stored in this.queue must never become a rejected promise —
+    // if it does, every subsequent .then() is skipped and the queue is dead.
+    // We separate the "chain stays alive" promise (which always resolves) from
+    // the "caller sees the error" promise (which rejects on failure).
+    const caller = this.queue.then(() => fn());
+    this.queue = caller.catch(() => {});
+    return caller;
+  }
+}
+
+interface PendingWrite {
+  buf: Buffer;
+  resolve: (offset: number) => void;
+  reject: (err: Error) => void;
+}
+
+class GroupCommitWriter {
+  private pending: PendingWrite[] = [];
+  private flushing = false;
+  private drainCallbacks: (() => void)[] = [];
+
+  constructor(
+    private readonly file: FileHandle,
+    private writePos: number,
+  ) {}
+
+  enqueue(buf: Buffer): Promise<number> {
+    return new Promise((resolve, reject) => {
+      this.pending.push({ buf, resolve, reject });
+      if (!this.flushing) {
+        this.flushing = true;
+        setImmediate(() => this._flush());
+      }
+    });
+  }
+
+  /**
+   * Resolves once all currently-pending and in-flight writes have been
+   * flushed to disk. Safe to call even when the writer is idle.
+   */
+  drain(): Promise<void> {
+    if (!this.flushing && this.pending.length === 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      this.drainCallbacks.push(resolve);
+    });
+  }
+
+  private async _flush(): Promise<void> {
+    const batch = this.pending.splice(0);
+    const combined = Buffer.concat(batch.map((p) => p.buf));
+    const startOffset = this.writePos;
+
+    try {
+      await this.file.write(combined, 0, combined.length, startOffset);
+      this.writePos += combined.length;
+
+      let off = startOffset;
+      for (const entry of batch) {
+        entry.resolve(off);
+        off += entry.buf.length;
+      }
+    } catch (err) {
+      for (const entry of batch) entry.reject(err as Error);
+    } finally {
+      if (this.pending.length > 0) {
+        setImmediate(() => this._flush());
+      } else {
+        this.flushing = false;
+        const callbacks = this.drainCallbacks.splice(0);
+        for (const cb of callbacks) cb();
+      }
+    }
+  }
+
+  get position(): number {
+    return this.writePos;
+  }
+}
+
+export async function DiskStorage(
+  path: string,
+  options: DiskStoreOptions = {},
+): Promise<DiskStore> {
+  const { fsync = false, writeQueue: useQueue = true, groupCommit = false } = options;
   /**
    * is a map of key and KeyEntry being the value.
    * KeyEntry contains the position of the byte offset in the file where the
@@ -74,6 +189,11 @@ export async function DiskStorage(path: string): Promise<DiskStore> {
    */
   let _file = await open(path, "a+");
 
+  // groupCommit takes priority: it manages its own position accounting and
+  // batches concurrent writes into a single syscall, so the WriteQueue is not
+  // needed alongside it.
+  const gcWriter = groupCommit ? new GroupCommitWriter(_file, _writePosition) : null;
+  const queue = !groupCommit && useQueue ? new WriteQueue() : null;
   await _initKeyDir();
 
   async function _initKeyDir(): Promise<void> {
@@ -93,7 +213,6 @@ export async function DiskStorage(path: string): Promise<DiskStore> {
       return;
     }
 
-    console.log("****----------initialising the database----------****");
     let offset = 0;
     while (offset < readResult.bytesRead) {
       const [timestamp, keySize, valueSize] = decodeHeader(buffer, offset);
@@ -102,13 +221,13 @@ export async function DiskStorage(path: string): Promise<DiskStore> {
       const key = buffer.toString(
         "utf8",
         offset + HEADER_SIZE,
-        offset + HEADER_SIZE + keySize
+        offset + HEADER_SIZE + keySize,
       );
 
       const value = buffer.toString(
         "utf8",
         offset + HEADER_SIZE + keySize,
-        offset + HEADER_SIZE + keySize + valueSize
+        offset + HEADER_SIZE + keySize + valueSize,
       );
 
       // tombstone value encountered, remove if exists otherwise continue
@@ -126,7 +245,10 @@ export async function DiskStorage(path: string): Promise<DiskStore> {
 
       offset += entrySize;
     }
-    console.log("****----------initialisation complete----------****");
+
+    // Set write position to the end of all scanned data — including tombstone
+    // records — so new writes never overlap existing records.
+    _writePosition = readResult.bytesRead;
   }
 
   /**
@@ -135,28 +257,35 @@ export async function DiskStorage(path: string): Promise<DiskStore> {
    * @param value
    */
   async function set(key: string, value: string): Promise<void> {
-    // The steps to save a KV to disk is simple:
-    // 1. Encode the KV into bytes
-    // 2. Write the bytes to disk by appending to the file
-    // 3. Update KeyDir with the KeyEntry of this key
-    const ts = timestamp();
-    const data = encodeKV(ts, key, value);
+    const inner = async () => {
+      const ts = timestamp();
+      const data = encodeKV(ts, key, value);
 
-    // saving stuff to a file reliably is hard!
-    // if you would like to explore and learn more, then
-    // start from here: https://danluu.com/file-consistency/
-    // and read this too: https://lwn.net/Articles/457667/
-    await _file.write(data);
+      let position: number;
+      if (gcWriter !== null) {
+        // Group-commit path: enqueue into the coalescing writer. Writes that
+        // arrive while a flush is in-flight are concatenated into one Buffer
+        // and land in a single pwrite syscall.
+        position = await gcWriter.enqueue(data);
+      } else {
+        // Direct path: single positioned write.
+        // saving stuff to a file reliably is hard!
+        // if you would like to explore and learn more, then
+        // start from here: https://danluu.com/file-consistency/
+        // and read this too: https://lwn.net/Articles/457667/
+        position = _writePosition;
+        _writePosition += data.length;
+        await _file.write(data, 0, data.length, position);
+      }
 
-    // calling fsync after every write is important, this assures that our writes
-    // are actually persisted to the disk
-    await _file.sync();
+      if (fsync) {
+        await _file.sync();
+      }
 
-    const entry = new KeyEntry(ts, _writePosition, data.length);
-    _keyDir.set(key, entry);
+      _keyDir.set(key, new KeyEntry(ts, position, data.length));
+    };
 
-    // update last write position, so that next record can be written from this point
-    _writePosition += data.length;
+    return queue !== null ? queue.enqueue(inner) : inner();
   }
 
   /**
@@ -188,6 +317,12 @@ export async function DiskStorage(path: string): Promise<DiskStore> {
   }
 
   async function close(): Promise<void> {
+    // Drain any in-flight or queued writes before touching the file handle.
+    // WriteQueue: enqueue a no-op that rides the tail of the chain; it resolves
+    // only after every earlier fn() has completed (or failed).
+    // GroupCommitWriter: drain() resolves once flushing=false and pending=[].
+    if (queue !== null) await queue.enqueue(async () => {});
+    if (gcWriter !== null) await gcWriter.drain();
     await _file.sync();
     await _file.close();
   }
